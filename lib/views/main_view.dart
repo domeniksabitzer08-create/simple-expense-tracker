@@ -48,12 +48,32 @@ class _MainViewState extends State<MainView> {
         color: const Color.fromARGB(255, 126, 115, 7),
       ),
     ),
+    Expense(
+      id: 0,
+      name: "Noodle King 2 ",
+      date: DateTime(2026, 10, 11),
+      expense: 7.50,
+      category: Category(
+        id: 0,
+        name: "Food",
+        color: const Color.fromARGB(255, 126, 115, 7),
+      ),
+    ),
+    Expense(
+      id: 0,
+      name: "Noodle King 3 ",
+      date: DateTime(2026, 11, 11),
+      expense: 7.50,
+      category: Category(
+        id: 0,
+        name: "Food",
+        color: const Color.fromARGB(255, 126, 115, 7),
+      ),
+    ),
   ];
 
-  List<DateTime> dates = [];
   @override
   Widget build(BuildContext context) {
-    List<dynamic> uiList = createList();
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
         items: [
@@ -71,27 +91,49 @@ class _MainViewState extends State<MainView> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: uiList.length,
-        itemBuilder: (BuildContext context, int index) {
-          final element = uiList[index];
-          if (element is Expense) return ExpenseLabel(expense: element);
-          return DateLabel(date: element);
-        },
-      ),
+      body: MainListView(expenes: expenes),
+    );
+  }
+}
+
+class MainListView extends StatefulWidget {
+  const new({
+    super.key,
+    required this.expenes,
+  });
+
+  final List<dynamic> expenes;
+
+  @override
+  State<MainListView> createState() => _MainListViewState();
+}
+
+class _MainListViewState extends State<MainListView> {
+  @override
+  Widget build(BuildContext context) {
+    List<dynamic> uiList = createList(widget.expenes);
+
+    return ListView.builder(
+      itemCount: uiList.length,
+      itemBuilder: (BuildContext context, int index) {
+        final element = uiList[index];
+        if (element is Expense) return ExpenseLabel(expense: element);
+        return DateLabel(date: element);
+      },
     );
   }
 
-  List<dynamic> createList() {
+  List<dynamic> createList(List<dynamic> expenes) {
+    List<DateTime> dates = [];
     List list = [];
-    int count = 0;
+
     for (int i = 0; i < expenes.length; i++) {
       Expense exp = expenes[i];
       if (!dates.contains(exp.date)) {
-        list.insert(i + count, exp.date);
+        list.insert(list.length, exp.date);
+        dates.add(exp.date);
       }
-      list.insert(i + count + 1, exp);
-      count++;
+      list.insert(list.length, exp);
     }
     return list;
   }
@@ -123,41 +165,43 @@ class ExpenseLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(color: Colors.white),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 1,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: AppText(
-                    text: _expense.name,
-                    color: Colors.black,
-                    fontSize: 30,
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Container(
+        decoration: BoxDecoration(color: Colors.white),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              flex: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Center(
+                    child: AppText(
+                      text: _expense.name,
+                      color: Colors.black,
+                      fontSize: 26,
+                    ),
                   ),
-                ),
-                CategoryLabel(category: _expense.category),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: AppText(
-                text: "-${_expense.expense}€",
-                fontSize: 50,
-                color: Colors.red,
-                fontWeight: FontWeight.bold,
+                  CategoryLabel(category: _expense.category),
+                ],
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Center(
+                child: AppText(
+                  text: "-${_expense.expense}€",
+                  fontSize: 50,
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
