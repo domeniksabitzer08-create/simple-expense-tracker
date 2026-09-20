@@ -3,6 +3,8 @@ import 'dart:developer' show log;
 import 'package:flutter/material.dart';
 import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
+import 'package:simple_expense_tracker/views/new_expense_view.dart';
+import 'package:simple_expense_tracker/views/sort_by_category_view.dart';
 import 'package:simple_expense_tracker/widgets/app_text_widget.dart';
 import 'package:simple_expense_tracker/widgets/category_widget.dart';
 
@@ -72,10 +74,19 @@ class _MainViewState extends State<MainView> {
     ),
   ];
 
+  int _selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      MainListView(expenes: expenes),
+      SortByCategoryView(),
+      NewExpenseView(),
+    ];
+
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -90,8 +101,13 @@ class _MainViewState extends State<MainView> {
             label: "Add Expense",
           ),
         ],
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
-      body: MainListView(expenes: expenes),
+      body: pages[_selectedIndex],
     );
   }
 }
