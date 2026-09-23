@@ -3,6 +3,8 @@ import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
 import 'package:simple_expense_tracker/service/database_service.dart';
 import 'package:simple_expense_tracker/widgets/app_text_widget.dart';
+import 'package:simple_expense_tracker/widgets/category_widget.dart';
+import 'package:sqflite/sqlite_api.dart';
 
 class NewExpenseView extends StatefulWidget {
   const new({super.key});
@@ -12,12 +14,38 @@ class NewExpenseView extends StatefulWidget {
 }
 
 class _NewExpenseViewState extends State<NewExpenseView> {
+  final DatabaseService _databaseService = DatabaseService.instance;
+
+  List<Category>? _categories;
+
   String? _name;
   double? _expense;
   DateTime? _date;
 
+  bool _isSynced = false;
+
+  int _value = -1;
+
+  Future<void> syncAllCategoriesWithDb() async {
+    List<Category> cats = await _databaseService.getAllCategories();
+    if (_categories == null || cats != _categories) {
+      setState(() {
+        _categories = cats;
+        _isSynced = true;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    syncAllCategoriesWithDb();
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (!_isSynced) return CircularProgressIndicator();
+    syncAllCategoriesWithDb();
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Padding(
@@ -110,6 +138,22 @@ class _NewExpenseViewState extends State<NewExpenseView> {
               text: "Category:",
               fontSize: 40,
             ),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _categories!.map((Category category) {
+                return ChoiceChip(
+                  label: AppText(text: category.name),
+                  selected: _value == category.id,
+                  onSelected: (bool isSelected) {
+                    setState(() {
+                      _value = category.id;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+
             ElevatedButton(
               onPressed: addElement,
               style: ButtonStyle(),
@@ -135,13 +179,12 @@ class _NewExpenseViewState extends State<NewExpenseView> {
       expense: 7.50,
       categoryId: 0,
     );
-    final DatabaseService databaseService = DatabaseService();
     print("making query");
-    int newCatId = await databaseService.addNewCategory(category);
+    int newCatId = await _databaseService.addNewCategory(category);
     category.id = newCatId;
-    int newExpId = await databaseService.addNewExpense(expense);
+    int newExpId = await _databaseService.addNewExpense(expense);
     expense.id = newExpId;
-    final expense2 = await databaseService.getExpense(newExpId);
+    final expense2 = await _databaseService.getExpense(newExpId);
 
     print("result:");
     print(expense2.toString());

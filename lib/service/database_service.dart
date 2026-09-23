@@ -10,6 +10,10 @@ import 'package:simple_expense_tracker/service/database_exceptions.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseService {
+  static final DatabaseService instance = DatabaseService._constructor();
+
+  DatabaseService._constructor();
+
   static Database? _db;
 
   Future<Database> get database async {
@@ -24,7 +28,7 @@ class DatabaseService {
   Future<Database> getDatabase() async {
     final databaseDirPath = await getDatabasesPath();
     final databasePath = join(databaseDirPath, "master_db.db");
-    deleteDatabase(databasePath);
+    //deleteDatabase(databasePath);
     final database = await openDatabase(
       databasePath,
       version: 1,
@@ -141,12 +145,10 @@ CREATE TABLE $_expenseTableName(
     }
   }
 
-  Future<List<Category>> getAllCategories(int id) async {
+  Future<List<Category>> getAllCategories() async {
     final Database db = await database;
     final data = await db.query(
       _categoryTableName,
-      where: "id = ?",
-      whereArgs: [id],
     );
     if (data.isNotEmpty) {
       Iterable<Category> category = data.map(
