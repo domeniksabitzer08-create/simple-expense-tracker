@@ -1,5 +1,7 @@
+import 'dart:developer' show log;
 import 'dart:ui';
 
+import 'package:flutter/material.dart';
 import 'package:path/path.dart';
 import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
@@ -21,24 +23,25 @@ class DatabaseService {
   Future<Database> getDatabase() async {
     final databaseDirPath = await getDatabasesPath();
     final databasePath = join(databaseDirPath, "master_db.db");
+    deleteDatabase(databasePath);
     final database = await openDatabase(
       databasePath,
+      version: 1,
       onCreate: (db, version) {
         db.execute('''
-      CREATE TABLE $_categoryTableName
-      $_categoryIdColoumnName INT PRIMARY KEY,
-      $_categoryNameColoumnName TEXT NOT NULL,
-      $_alphaColoumnName INT NOT NULL
-      $_redColoumnName INT NOT NULL
-      $_greenColoumnName INT NOT NULL
-      $_blueColoumnName INT NOT NULL
-
-      CREATE TABLE $_expenseTableName
-      $_expenseIdColoumnName INT PRIMARY KEY,
+CREATE TABLE $_expenseTableName(
+      $_expenseIdColoumnName INTEGER PRIMARY KEY AUTOINCREMENT,
       $_expenseColoumnName REAL NOT NULL,
       $_expenseNameColoumnName TEXT NOT NULL,
       $_dateColoumnName TEXT NOT NULL,
-      $_expenseCategoryIdColoumnName INT
+      $_expenseCategoryIdColoumnName INT);''');
+        db.execute('''CREATE TABLE $_categoryTableName(
+      $_categoryIdColoumnName INTEGER PRIMARY KEY AUTOINCREMENT,
+      $_categoryNameColoumnName TEXT NOT NULL,
+      $_alphaColoumnName INTEGER NOT NULL,
+      $_redColoumnName INTEGER NOT NULL,
+      $_greenColoumnName INTEGER NOT NULL,
+      $_blueColoumnName INTEGER NOT NULL);
       ''');
       },
     );
@@ -51,17 +54,21 @@ class DatabaseService {
     int? newId = await db.insert(_expenseTableName, {
       _expenseColoumnName: expense.expense,
       _expenseNameColoumnName: expense.name,
-      _dateColoumnName: expense.name,
-      _expenseCategoryIdColoumnName: expense.category.id,
+      _dateColoumnName: expense.date.toString(),
+      _expenseCategoryIdColoumnName: expense.categoryId,
     });
     return newId;
   }
 
   Future<int> addNewCategory(Category category) async {
-    final Database db = await database;
+    Database db = await database;
+
     int? newId = await db.insert(_categoryTableName, {
       _categoryNameColoumnName: category.name,
-      _colorColoumnName: category.color,
+      _alphaColoumnName: category.color.alpha,
+      _redColoumnName: category.color.red,
+      _greenColoumnName: category.color.green,
+      _blueColoumnName: category.color.blue,
     });
     return newId;
   }
@@ -72,21 +79,23 @@ class DatabaseService {
       _expenseTableName,
       where: "id = ?",
       whereArgs: [id],
+      limit: 1,
     );
+    if (data.isEmpty) throw IdNotFoundDatabaseException();
 
-    final Category category = 
+    Expense expense = data
+        .map(
+          (e) => Expense(
+            id: e["id"] as int,
+            name: e["name"] as String,
+            date: DateTime.parse(e["date"] as String),
+            expense: e["expense"] as double,
+            categoryId: e[_expenseCategoryIdColoumnName] as int,
+          ),
+        )
+        .first;
 
-    Expense expense = data.map(
-      (e) async{
-        return Expense(
-        id: e["id"] as int,
-        name: e["name"] as String,
-        date:  DateTime.parse(e["date"] as String),
-        expense: e["expense"] as double,
-        category: await getCategory(e[_expenseCategoryIdColoumnName] as int),
-      );
-      }
-    );
+    return expense;
   }
 
   Future<Category> getCategory(int id) async {
@@ -97,7 +106,7 @@ class DatabaseService {
       whereArgs: [id],
       limit: 1,
     );
-    if (data.isEmpty) {
+    if (data.isNotEmpty) {
       Iterable<Category> category = data.map(
         (e) => Category(
           id: e["id"] as int,
@@ -114,6 +123,52 @@ class DatabaseService {
     } else {
       throw IdNotFoundDatabaseException();
     }
+  }
+
+  Future<List<Category>> getAllCategories(int id) async {
+    final Database db = await database;
+    final data = await db.query(
+      _categoryTableName,
+      where: "id = ?",
+      whereArgs: [id],
+    );
+    if (data.isNotEmpty) {
+      Iterable<Category> category = data.map(
+        (e) => Category(
+          id: e["id"] as int,
+          name: e["name"] as String,
+          color: Color.fromARGB(
+            e["alpha"] as int,
+            e["red"] as int,
+            e["green"] as int,
+            e["blue"] as int,
+          ),
+        ),
+      );
+      return category.toList();
+    } else {
+      throw IdNotFoundDatabaseException();
+    }
+  }
+
+  Future<List<Expense>> getAllExpenses(int id) async {
+    final Database db = await database;
+    final data = await db.rawQuery('''
+      SELECT * FROM $_expenseTableName
+      ''');
+    if (data.isEmpty) throw IdNotFoundDatabaseException();
+
+    final expenses = data.map(
+      (e) => Expense(
+        id: e["id"] as int,
+        name: e["name"] as String,
+        date: DateTime.parse(e["date"] as String),
+        expense: e["expense"] as double,
+        categoryId: e[_expenseCategoryIdColoumnName] as int,
+      ),
+    );
+
+    return expenses.toList();
   }
 
   final String _categoryTableName = "categories";

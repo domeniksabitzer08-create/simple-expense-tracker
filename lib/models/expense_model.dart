@@ -1,17 +1,22 @@
 import 'package:simple_expense_tracker/models/category_model.dart';
 
 class Expense {
-  final int id;
+  int id;
   final String name;
   final DateTime date;
   final double expense;
-  final Category category;
+  final int categoryId;
 
   new({
     required this.id,
     required this.name,
     required this.date,
     required this.expense,
-    required this.category,
+    required this.categoryId,
   });
+
+  @override
+  String toString() {
+    return "id: $id | name: $name | date: $date | exepense: $expense | category: $categoryId";
+  }
 }

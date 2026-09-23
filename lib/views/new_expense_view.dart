@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:simple_expense_tracker/models/category_model.dart';
+import 'package:simple_expense_tracker/models/expense_model.dart';
+import 'package:simple_expense_tracker/service/database_service.dart';
 import 'package:simple_expense_tracker/widgets/app_text_widget.dart';
 
 class NewExpenseView extends StatefulWidget {
@@ -104,7 +107,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
               fontSize: 40,
             ),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: addElement,
               style: ButtonStyle(),
               child: AppText(text: "ADD"),
             ),
@@ -112,6 +115,32 @@ class _NewExpenseViewState extends State<NewExpenseView> {
         ),
       ),
     );
+  }
+
+  Future<void> addElement() async {
+    final Category category = Category(
+      id: -1,
+      name: "Food",
+      color: const Color.fromARGB(255, 126, 115, 7),
+    );
+
+    final expense = Expense(
+      id: -1,
+      name: "Mc Donalds",
+      date: DateTime(2026, 9, 11),
+      expense: 7.50,
+      categoryId: 0,
+    );
+    final DatabaseService databaseService = DatabaseService();
+    print("making query");
+    int newCatId = await databaseService.addNewCategory(category);
+    category.id = newCatId;
+    int newExpId = await databaseService.addNewExpense(expense);
+    expense.id = newExpId;
+    final expense2 = await databaseService.getExpense(newExpId);
+
+    print("result:");
+    print(expense2.toString());
   }
 }
 
