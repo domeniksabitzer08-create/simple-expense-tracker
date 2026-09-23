@@ -12,6 +12,10 @@ class NewExpenseView extends StatefulWidget {
 }
 
 class _NewExpenseViewState extends State<NewExpenseView> {
+  String? _name;
+  double? _expense;
+  DateTime? _date;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;

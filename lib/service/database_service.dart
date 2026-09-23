@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart';
+import 'package:simple_expense_tracker/constants/pre_defined_categories.dart';
 import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
 import 'package:simple_expense_tracker/service/database_exceptions.dart';
@@ -43,10 +44,25 @@ CREATE TABLE $_expenseTableName(
       $_greenColoumnName INTEGER NOT NULL,
       $_blueColoumnName INTEGER NOT NULL);
       ''');
+
+        insertPreDefinedCategories(db);
       },
     );
 
     return database;
+  }
+
+  void insertPreDefinedCategories(Database db) async {
+    for (Category category in preDefinedCategories) {
+      int newId = await db.insert(_categoryTableName, {
+        _categoryNameColoumnName: category.name,
+        _alphaColoumnName: category.color.alpha,
+        _redColoumnName: category.color.red,
+        _greenColoumnName: category.color.green,
+        _blueColoumnName: category.color.blue,
+      });
+      category.id = newId;
+    }
   }
 
   Future<int> addNewExpense(Expense expense) async {
