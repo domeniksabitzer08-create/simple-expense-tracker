@@ -25,6 +25,8 @@ class _NewExpenseViewState extends State<NewExpenseView> {
   bool _isSynced = false;
 
   int _value = -1;
+  double _labelDefaultPadding = 2;
+  double _labelSelectedPadding = 4;
 
   Future<void> syncAllCategoriesWithDb() async {
     List<Category> cats = await _databaseService.getAllCategories();
@@ -142,9 +144,26 @@ class _NewExpenseViewState extends State<NewExpenseView> {
               spacing: 10,
               runSpacing: 10,
               children: _categories!.map((Category category) {
+                final isSelected = (_value == category.id);
                 return ChoiceChip(
-                  label: AppText(text: category.name),
-                  selected: _value == category.id,
+                  showCheckmark: false,
+                  backgroundColor: category.color,
+                  selectedColor: category.color,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+
+                  label: AnimatedPadding(
+                    padding: EdgeInsets.all(
+                      isSelected ? _labelSelectedPadding : _labelDefaultPadding,
+                    ),
+                    duration: Duration(milliseconds: 200),
+                    child: AppText(
+                      text: category.name,
+                      color: Colors.white,
+                    ),
+                  ),
+                  selected: isSelected,
                   onSelected: (bool isSelected) {
                     setState(() {
                       _value = category.id;
