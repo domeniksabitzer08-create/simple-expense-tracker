@@ -1,10 +1,12 @@
+import 'dart:developer';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
 import 'package:simple_expense_tracker/service/database_service.dart';
 import 'package:simple_expense_tracker/widgets/app_text_widget.dart';
-import 'package:simple_expense_tracker/widgets/category_widget.dart';
-import 'package:sqflite/sqlite_api.dart';
+import 'package:sqflite/sqflite.dart';
 
 class NewExpenseView extends StatefulWidget {
   const new({super.key});
@@ -20,13 +22,18 @@ class _NewExpenseViewState extends State<NewExpenseView> {
 
   String? _name;
   double? _expense;
-  DateTime? _date;
+  String? _stringDate;
 
   bool _isSynced = false;
 
-  int _value = -1;
-  double _labelDefaultPadding = 2;
-  double _labelSelectedPadding = 4;
+  int _selectedIndex = -1;
+  final double _labelDefaultPadding = 2;
+  final double _labelSelectedPadding = 4;
+
+  void callBackName(String? newName) => _name = newName;
+  void callBackExpense(String? newExpense) =>
+      _expense = double.tryParse(newExpense!);
+  void callBackdate(String? newdate) => _stringDate = newdate;
 
   Future<void> syncAllCategoriesWithDb() async {
     List<Category> cats = await _databaseService.getAllCategories();
@@ -75,6 +82,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
                   padding: EdgeInsetsGeometry.all(8),
                   child: Center(
                     child: TextField(
+                      onChanged: (value) => callBackName(value),
                       minLines: 1,
                       maxLines: 2,
                       decoration: InputDecoration(
@@ -99,6 +107,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 InputField(
+                  callBack: callBackExpense,
                   height: 110,
                   width: 180,
                   textFieldPadding: EdgeInsetsGeometry.all(10),
@@ -125,6 +134,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: InputField(
+                      callBack: callBackdate,
                       height: 50,
                       width: 180,
                       textFieldPadding: EdgeInsetsGeometry.all(6),
@@ -144,7 +154,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
               spacing: 10,
               runSpacing: 10,
               children: _categories!.map((Category category) {
-                final isSelected = (_value == category.id);
+                final isSelected = (_selectedIndex == category.id);
                 return ChoiceChip(
                   showCheckmark: false,
                   backgroundColor: category.color,
@@ -166,7 +176,7 @@ class _NewExpenseViewState extends State<NewExpenseView> {
                   selected: isSelected,
                   onSelected: (bool isSelected) {
                     setState(() {
-                      _value = category.id;
+                      _selectedIndex = category.id;
                     });
                   },
                 );
@@ -185,33 +195,67 @@ class _NewExpenseViewState extends State<NewExpenseView> {
   }
 
   Future<void> addElement() async {
-    final Category category = Category(
-      id: -1,
-      name: "Food",
-      color: const Color.fromARGB(255, 126, 115, 7),
-    );
+    final expense = await parseToExpense();
+    if (expense != null) {
+      int newId = await _databaseService.addNewExpense(expense);
+      log("expnese info from database: ");
+      final newExpense = await _databaseService.getExpense(newId);
+      log(newExpense.toString());
+    }
+  }
 
-    final expense = Expense(
-      id: -1,
-      name: "Mc Donalds",
-      date: DateTime(2026, 9, 11),
-      expense: 7.50,
-      categoryId: 0,
-    );
-    print("making query");
-    int newCatId = await _databaseService.addNewCategory(category);
-    category.id = newCatId;
-    int newExpId = await _databaseService.addNewExpense(expense);
-    expense.id = newExpId;
-    final expense2 = await _databaseService.getExpense(newExpId);
+  Future<Expense?> parseToExpense() async {
+    DateTime? date = convertStringToDate(_stringDate!);
+    String errorText = "";
+    if (date == null) {
+      errorText = "The date is not in the right format or is empty";
+    }
+    if (_selectedIndex == -1) errorText = "No category was selected";
+    if (_name == "") errorText = "No name was given";
+    if (_expense == null) errorText = "No expnese was given";
 
-    print("result:");
-    print(expense2.toString());
+    if (errorText != "") {
+      showErrorDialog(errorText);
+      return null;
+    } else {
+      return Expense(
+        id: -1,
+        name: _name!,
+        date: date!,
+        expense: _expense!,
+        categoryId: _categories![_selectedIndex].id,
+      );
+    }
+  }
+
+  Future<dynamic> showErrorDialog(String data) {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Center(child: AppText(text: "Error")),
+        content: AppText(text: data),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: AppText(text: "OK"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime? convertStringToDate(String stringDate) {
+    DateTime? date;
+    date = DateTime.tryParse(stringDate);
+    return date;
   }
 }
 
 class InputField extends StatefulWidget {
   final double height;
+  final Function callBack;
   final double? width;
   final Color? containerColor;
   final Color? fontColor;
@@ -222,6 +266,7 @@ class InputField extends StatefulWidget {
   const InputField({
     super.key,
     required this.height,
+    required this.callBack,
     this.width,
     this.containerColor,
     required this.textFieldPadding,
@@ -248,6 +293,7 @@ class _InputFieldState extends State<InputField> {
         padding: widget.textFieldPadding,
         child: Center(
           child: TextField(
+            onChanged: (value) => widget.callBack(value),
             decoration: InputDecoration(
               border: InputBorder.none,
             ),
