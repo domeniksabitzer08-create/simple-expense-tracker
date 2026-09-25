@@ -169,7 +169,7 @@ CREATE TABLE $_expenseTableName(
     }
   }
 
-  Future<List<Expense>> getAllExpenses(int id) async {
+  Future<List<Expense>> getAllExpenses() async {
     final Database db = await database;
     final data = await db.rawQuery('''
       SELECT * FROM $_expenseTableName

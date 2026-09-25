@@ -1,12 +1,12 @@
 import 'dart:developer' show log;
 
 import 'package:flutter/material.dart';
-import 'package:simple_expense_tracker/models/category_model.dart';
 import 'package:simple_expense_tracker/models/expense_model.dart';
+import 'package:simple_expense_tracker/service/database_service.dart';
+import 'package:simple_expense_tracker/views/loading_view.dart';
 import 'package:simple_expense_tracker/views/new_expense_view.dart';
 import 'package:simple_expense_tracker/views/sort_by_category_view.dart';
 import 'package:simple_expense_tracker/widgets/app_text_widget.dart';
-import 'package:simple_expense_tracker/widgets/category_widget.dart';
 
 class MainView extends StatefulWidget {
   const new({super.key});
@@ -16,50 +16,13 @@ class MainView extends StatefulWidget {
 }
 
 class _MainViewState extends State<MainView> {
-  final expenes = [
-    Expense(
-      id: 0,
-      name: "Mc Donalds",
-      date: DateTime(2026, 9, 11),
-      expense: 7.50,
-      categoryId: 0,
-    ),
-    Expense(
-      id: 0,
-      name: "Burger King",
-      date: DateTime(2026, 9, 11),
-      expense: 7.50,
-      categoryId: 0,
-    ),
-    Expense(
-      id: 0,
-      name: "Noodle King",
-      date: DateTime(2026, 10, 11),
-      expense: 7.50,
-      categoryId: 0,
-    ),
-    Expense(
-      id: 0,
-      name: "Noodle King 2 ",
-      date: DateTime(2026, 10, 11),
-      expense: 7.50,
-      categoryId: 0,
-    ),
-    Expense(
-      id: 0,
-      name: "Noodle King 3 ",
-      date: DateTime(2026, 11, 11),
-      expense: 7.50,
-      categoryId: 0,
-    ),
-  ];
-
   int _selectedIndex = 0;
-
+  final _databaseService = DatabaseService.instance;
+  List<Expense>? _expenses;
   @override
   Widget build(BuildContext context) {
     final pages = [
-      MainListView(expenes: expenes),
+      MainListView(expenses: _expenses),
       SortByCategoryView(),
       NewExpenseView(),
     ];
@@ -90,15 +53,26 @@ class _MainViewState extends State<MainView> {
       body: pages[_selectedIndex],
     );
   }
+
+  @override
+  void initState() {
+    setExpenses();
+    super.initState();
+  }
+
+  void setExpenses() async {
+    _expenses = await _databaseService.getAllExpenses();
+    log("got expneses: ${_expenses!.first}");
+  }
 }
 
 class MainListView extends StatefulWidget {
   const new({
     super.key,
-    required this.expenes,
+    required this.expenses,
   });
 
-  final List<dynamic> expenes;
+  final List<Expense>? expenses;
 
   @override
   State<MainListView> createState() => _MainListViewState();
@@ -107,8 +81,8 @@ class MainListView extends StatefulWidget {
 class _MainListViewState extends State<MainListView> {
   @override
   Widget build(BuildContext context) {
-    List<dynamic> uiList = createList(widget.expenes);
-
+    if (widget.expenses == null) return LoadingView();
+    List<dynamic> uiList = createList(widget.expenses!);
     return ListView.builder(
       itemCount: uiList.length,
       itemBuilder: (BuildContext context, int index) {
